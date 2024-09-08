@@ -1,426 +1,478 @@
 <!DOCTYPE html>
 <html>
-  <body style="background-color: dimgrey">
-    <img src="ocw.png" id="ocw" style="display:none">
-    <img src="sorcerer.png" id="sor" style="display:none">
-    <center>
-      <br><br>
-      <canvas id="cnv" width=700 height=500 style="background-color:black; border:solid 3px white;">
-      </canvas><br><br>
 
-      <select id="selectEffect">
-      </select>
-    </center>
+<body style="background-color: dimgrey">
+  <img src="ocw.png" id="ocw" style="display:none">
+  <img src="sorcerer.png" id="sor" style="display:none">
+  <img src="texture.png" id="tex" style="display:none">
+  <center>
+    <br><br>
+    <canvas id="cnv" width=700 height=500 style="background-color:black; border:solid 3px white;">
+    </canvas><br><br>
 
-    <script>
-      const W=700;
-      const H=500;
+    <select id="selectEffect">
+    </select>
+  </center>
 
-      var ctx=cnv.getContext("2d");
-      
-      var img=ctx.createImageData(W, H);
-      var scr=img.data;
-   
-      function pixel(x, y, r, g, b, a=255){
-        scr[(x+y*W)*4]=r;
-        scr[(x+y*W)*4+1]=g;
-        scr[(x+y*W)*4+2]=b;
-        scr[(x+y*W)*4+3]=a;
-      }
+  <script>
+    const W = 700;
+    const H = 500;
 
-      function rect(x, y, w, h, r, g, b, a=255){
-        for(x=0; x<w; x++)
-          for(y=0; y<h; y++){        
-            scr[(x+y*W)*4]=r;
-            scr[(x+y*W)*4+1]=g;
-            scr[(x+y*W)*4+2]=b;
-            scr[(x+y*W)*4+3]=a;
-          }
-      }
-        
-    function circle2Map(map, x, y, r, val){
-        for(var i=0; i<r; i++)
-            for(var j=0; j<r; j++){
-                var nx=(i-r/2)/(r/2);
-                var ny=(j-r/2)/(r/2);
-                var nz=1-Math.sqrt(nx*nx+ny*ny);
-                if(nz>0)
-                    map[x+i][y+j]=typeof val=="function" ? val(vars={val:map[x+i][y+j], nz:nz, i:i, j:j}) : val;
-            }
+    var ctx = cnv.getContext("2d");
+
+    var img = ctx.createImageData(W, H);
+    var scr = img.data;
+
+    function pixel(x, y, r, g, b, a = 255) {
+      x = parseInt(x);
+      y = parseInt(y);
+      scr[(x + y * W) * 4] = r;
+      scr[(x + y * W) * 4 + 1] = g;
+      scr[(x + y * W) * 4 + 2] = b;
+      scr[(x + y * W) * 4 + 3] = a;
     }
 
-      var effects=[];
-      var interval;
-      var last;
-      var T=0;
-
-      selectEffect.onchange=function(){
-        if(interval!=null) clearInterval(interval);
-        rect(0, 0, W, H, 0, 0, 0,);
-        effects[selectEffect.value]();
-      }
-
-      window.onload=function(){
-        ocw.crossOrigin="Anonymous";
-        for(e in effects){
-            var o=document.createElement("option");
-            o.text=e;
-            o.val=e;
-            selectEffect.appendChild(o);
+    function rect(x, y, w, h, r, g, b, a = 255) {
+      for (x = 0; x < w; x++)
+        for (y = 0; y < h; y++) {
+          scr[(x + y * W) * 4] = r;
+          scr[(x + y * W) * 4 + 1] = g;
+          scr[(x + y * W) * 4 + 2] = b;
+          scr[(x + y * W) * 4 + 3] = a;
         }
-        selectEffect.onchange();
+    }
+
+    function circle2Map(map, x, y, r, val) {
+      for (var i = 0; i < r; i++)
+        for (var j = 0; j < r; j++) {
+          var nx = (i - r / 2) / (r / 2);
+          var ny = (j - r / 2) / (r / 2);
+          var nz = 1 - Math.sqrt(nx * nx + ny * ny);
+          if (nz > 0)
+            map[x + i][y + j] = typeof val == "function" ? val(vars = { val: map[x + i][y + j], nz: nz, i: i, j: j }) : val;
+        }
+    }
+
+    function texture(img, x1, y1, x2, y2, x3, y3, x4, y4) {
+      let e = Math.abs(x3 - x1) + Math.abs(y3 - y1);
+      let f = Math.abs(x4 - x2) + Math.abs(y4 - y2);
+      if (f > e) e = f;
+      let sx = (x3 - x1) / e;
+      let sy = (y3 - y1) / e;
+      let ex = (x4 - x2) / e;
+      let ey = (y4 - y2) / e;
+      let tx = x1;
+      let ty = y1;
+      let gx = x2;
+      let gy = y2;
+      for (let y = 0; y < e; y++) {
+        let fx = tx;
+        let fy = ty;
+        let d = Math.abs(gx - tx) + Math.abs(gy - ty);
+        d++;
+        let dx = (gx - tx) / d;
+        let dy = (gy - ty) / d;
+        for (let x = 0; x < d; x++) {
+          let c = (parseInt(x * img.width / d) + parseInt(y * img.height / e) * img.width) * 4;
+          pixel(fx, fy, img.data[c], img.data[c + 1], img.data[c + 2]);
+          fx += dx;
+          fy += dy;
+        }
+        tx += sx;
+        ty += sy;
+        gx += ex;
+        gy += ey;
       }
+    }
 
-      /********** Snowy TV **********/
-      effects["Snowy TV"]=
-          function(){
-            interval=setInterval(function(){
-              for(x=0; x<W; x++)
-                for(y=0; y<H; y++){
-                  c=Math.round(Math.random()*255);
-                  pixel(x, y*2, c, c, c);
-                }
-              ctx.putImageData(img, 0, 0);
-            }, 10);
+    var effects = [];
+    var interval;
+    var last;
+    var T = 0;
+
+    selectEffect.onchange = function () {
+      if (interval != null) clearInterval(interval);
+      rect(0, 0, W, H, 0, 0, 0,);
+      effects[selectEffect.value]();
+    }
+
+    window.onload = function () {
+      ocw.crossOrigin = "Anonymous";
+      for (e in effects) {
+        var o = document.createElement("option");
+        o.text = e;
+        o.val = e;
+        selectEffect.appendChild(o);
+      }
+      selectEffect.onchange();
+    }
+
+    /********** Snowy TV **********/
+    effects["Snowy TV"] =
+      function () {
+        interval = setInterval(function () {
+          for (x = 0; x < W; x++)
+            for (y = 0; y < H; y++) {
+              c = Math.round(Math.random() * 255);
+              pixel(x, y * 2, c, c, c);
+            }
+          ctx.putImageData(img, 0, 0);
+        }, 10);
+      };
+
+    /********** Plasma **********/
+    effects["Plasma"] =
+      function () {
+        interval = setInterval(function () {
+          T++;
+          for (x = 0; x < W; x++)
+            for (y = 0; y < H; y++) {
+              pixel(x, y * 2, Math.sin(x / 50 + T / 5) * 50 + Math.cos(y / 50 - T / 20) * 100 + 100, Math.sin(y / 50 + T / 5) * 50 + Math.cos(x / 50 + T / 10) * 80 + 100, Math.sin(x / 50 + T / 5) * 50 + Math.cos(y / 50 + T / 7) * 80 + 100);
+            }
+          ctx.putImageData(img, 0, 0);
+        }, 50);
+      };
+
+    /********** Stars **********/
+    effects["Stars"] =
+      function () {
+        const SC = 300;
+        var stars = [];
+
+        for (s = 0; s < SC; s++) {
+          stars[s] = {
+            x: Math.round(Math.random() * W),
+            y: Math.round(Math.random() * H),
+            s: 1 + Math.round(Math.random() * 5)
+          }
+        }
+
+        interval = setInterval(function () {
+          rect(0, 0, W, H, 0, 0, 0,);
+          for (s = 0; s < SC; s++) {
+            pixel(stars[s].x, stars[s].y, 255, 255, 255, stars[s].s * 40);
+            stars[s].x -= stars[s].s;
+          }
+          ctx.putImageData(img, 0, 0);
+        }, 20);
+      };
+
+    /********** Star Field **********/
+    effects["Star Field"] =
+      function () {
+        const SC = 300;
+        var stars = [];
+
+        for (s = 0; s < SC; s++) {
+          stars[s] = {
+            x: Math.round(Math.random() * W),
+            y: Math.round(Math.random() * H),
+            z: Math.round(Math.random() * 10)
+          }
+        }
+
+        interval = setInterval(function () {
+          rect(0, 0, W, H, 0, 0, 0,);
+          T++;
+          for (s = 0; s < SC; s++) {
+            pixel(Math.round((W / 2 - stars[s].x) / (1 + stars[s].z) + W / 2), Math.round((H / 2 - stars[s].y) / (1 + stars[s].z) + H / 2), 255, 255, 255, 255 - stars[s].z * 25);
+            if (stars[s].z > 0) stars[s].z -= 0.05;
+            else stars[s].z = 10;
+          }
+          ctx.putImageData(img, 0, 0);
+        }, 20);
+      };
+
+    /********** Backfeed **********/
+    effects["Backfeed"] =
+      function () {
+        var map1 = Array(W).fill(0).map(() => Array(H).fill(0));
+        var map2 = Array(W).fill(0).map(() => Array(H).fill(0));
+
+        ctx.font = "10px tahoma";
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#fff";
+        ctx.fillText("B A C K F E E D", 0, 10);
+        var tImg = ctx.getImageData(0, 0, 70, 10);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H);
+
+        interval = setInterval(function () {
+          T = (T + 1) % 360;
+          map1[342][260] = 100 + Math.round(Math.random() * 155);
+          for (a = 0; a < 50; a++)
+            map1[Math.floor(Math.random() * W)][Math.floor(Math.random() * H)] = Math.round(Math.random() * 255);
+
+          map1[Math.round(W / 2 + Math.sin(T / 10) * 2)][Math.round(H / 2 + Math.cos(T / 5) * 2)] = Math.round(Math.random() * 255);
+
+          if (T > 0 && T < 200)
+            for (x = 0; x < tImg.width; x++)
+              for (y = 0; y < tImg.height; y++)
+                if (tImg.data[(x + y * tImg.width) * 4] > 180)
+                  map1[Math.round(W / 2 + x - 40 + Math.sin(T / 5) * 10)][Math.round(H / 2 + y - 5 + Math.cos(T / 10) * 10)] = T;
+
+          for (x = 0; x < W; x++)
+            for (y = 0; y < H; y++)
+              map2[x][y] = map1[Math.round((x + W / 2) / 2)][Math.round((y + H / 2) / 2)];
+
+          for (x = 1; x < W - 1; x++)
+            for (y = 1; y < H - 1; y++) {
+              c = (map2[x + 1][y] + map2[x][y + 1] + map2[x - 1][y] + map2[x][y - 1] + map2[x + 1][y + 1] + map2[x - 1][y - 1] + map2[x + 1][y - 1] + map2[x - 1][y + 1] + map2[x][y]) / 9;
+              if (c > 0) c--;
+              map2[x][y] = c;
+            }
+
+          for (x = 0; x < W; x++)
+            for (y = 0; y < H / 2; y++) {
+              pixel(x, y * 2, map2[x][y * 2] > 100 ? map2[x][y * 2] - 70 : 0, map2[x][y * 2], map2[x][y * 2] > 150 ? map2[x][y * 2] : 0);
+            }
+
+          for (x = 0; x < W; x++)
+            for (y = 0; y < H; y++)
+              map1[x][y] = map2[x][y];
+
+          ctx.putImageData(img, 0, 0);
+        }, 70);
+      };
+
+    /********** Fountain **********/
+    effects["Fountain"] =
+      function () {
+        const GRAVITY = 0.04;
+        const DC = 500;
+
+        var drops = [];
+        var map = Array(W).fill(0).map(() => Array(H).fill(0));
+
+        y = DC;
+        for (n = 0; n <= DC; n++) {
+          drops[n] = {
+            x: 0,
+            y: H,
+            v: -Math.round(Math.random() * 6),
+            xa: 1 - Math.random() * 2,
+            ya: 0
           };
+        }
 
-      /********** Plasma **********/
-      effects["Plasma"]=
-        function(){
-          interval=setInterval(function(){
-            T++;
-            for(x=0; x<W; x++)
-              for(y=0; y<H; y++){
-                pixel(x, y*2, Math.sin(x/50+T/5)*50+Math.cos(y/50-T/20)*100+100, Math.sin(y/50+T/5)*50+Math.cos(x/50+T/10)*80+100, Math.sin(x/50+T/5)*50+Math.cos(y/50+T/7)*80+100);
-              }
-            ctx.putImageData(img, 0, 0);
-          }, 50);
-        };
+        interval = setInterval(function () {
 
-      /********** Stars **********/
-      effects["Stars"]=
-        function(){
-          const SC=300;
-          var stars=[];
+          for (n = 0; n <= DC; n++) {
+            drops[n].ya += GRAVITY;
+            drops[n].y += drops[n].ya;
+            if (drops[n].y > H - 50) {
+              drops[n].ya = drops[n].v;
+              drops[n].y = H - 50;
+              drops[n].v++;
+            }
+            if (drops[n].v >= -1) {
+              drops[n].x = 0;
+              drops[n].ya = Math.round(Math.random() * -4);
+              drops[n].v = drops[n].ya + 1;
+            }
+            drops[n].x += drops[n].xa;
+            if (W / 2 + Math.round(drops[n].x) > 0 && W / 2 + Math.round(drops[n].x) < 700)
+              map[W / 2 + Math.round(drops[n].x)][Math.round(drops[n].y)] = 255;
+          }
 
-          for(s=0; s<SC; s++){
-            stars[s]={
-              x: Math.round(Math.random()*W),
-              y: Math.round(Math.random()*H),
-              s: 1+Math.round(Math.random()*5)
+          for (x = 1; x < W - 1; x++)
+            for (y = 1; y < H - 1; y++) {
+              c = (map[x + 1][y] + map[x][y + 1] + map[x - 1][y] + map[x][y - 1] + map[x + 1][y + 1] + map[x - 1][y - 1] + map[x + 1][y - 1] + map[x - 1][y + 1] + map[x][y]) / 9;
+              if (c > 0) c--;
+              map[x][y] = c;
+            }
+
+          for (x = 0; x < W; x++)
+            for (y = 0; y < H / 2; y++) {
+              pixel(x, y * 2, map[x][y * 2] > 10 ? 50 + map[x][y * 2] : 0, map[x][y * 2], map[x][y * 2] > 10 ? 100 + map[x][y * 2] * 2 : 0);
+            }
+
+          ctx.putImageData(img, 0, 0);
+        }, 20);
+      };
+
+    /********** Metaballs **********/
+    effects["Metaballs"] =
+      function () {
+        var map = Array(W).fill(0).map(() => Array(H).fill(0));
+
+        interval = setInterval(function () {
+
+          T += 0.1;
+
+          for (x = 0; x < W / 2; x++)
+            for (y = 0; y < 50; y++) {
+              map[x + W / 4][y + 80] = 700;
+              map[x + W / 4][y + H - 140] = 700;
+            }
+
+          if (T % 150 > 0 && T % 150 < 50) {
+            function calcValue(c) {
+              return c.val + Math.round(c.nz * 100);
+            }
+            circle2Map(map, W / 2 - 25 + Math.round(Math.sin(T / 2) * 100), H / 2 - 25 + Math.round(Math.cos(T / 5) * 100), 50, calcValue);
+            circle2Map(map, W / 2 - 25 + Math.round(Math.sin(T / 3) * 100), H / 2 - 25 + Math.round(Math.cos(T / 4) * 100), 50, calcValue);
+            circle2Map(map, W / 2 - 25 + Math.round(Math.sin(T / 4) * 100), H / 2 - 25 + Math.round(Math.cos(T / 3) * 100), 50, calcValue);
+            circle2Map(map, W / 2 - 25 + Math.round(Math.sin(T / 2) * 100), H / 2 - 25 + Math.round(Math.cos(T / 3) * 100), 50, calcValue);
+          }
+
+          if (T % 150 > 60 && T % 100 < 150) {
+            function calcValue(c) {
+              return c.val + Math.round(c.nz * 100);
+            }
+            circle2Map(map, W / 2 + 50, H / 2 - 25 + Math.round(Math.cos(T / 2) * 120), 50, calcValue);
+            circle2Map(map, W / 2 + 10, H / 2 - 25 + Math.round(Math.cos(T / 5) * 120), 50, calcValue);
+            circle2Map(map, W / 2 - 40, H / 2 - 25 + Math.round(Math.sin(T / 4) * 120), 50, calcValue);
+            circle2Map(map, W / 2 - 90, H / 2 - 25 + Math.round(Math.cos(T / 3) * 120), 50, calcValue);
+          }
+
+
+          for (x = 1; x < W - 1; x++)
+            for (y = 1; y < H - 1; y++) {
+              c = (map[x + 1][y] + map[x][y + 1] + map[x - 1][y] + map[x][y - 1] + map[x + 1][y + 1] + map[x - 1][y - 1] + map[x + 1][y - 1] + map[x - 1][y + 1] + map[x][y]) / 9;
+              if (c > 0) c -= 5;
+              map[x][y] = c;
+            }
+
+          for (x = 0; x < W; x++)
+            for (y = 0; y < H / 2; y++) {
+              c = map[x][y * 2] > 950 ? 255 : (map[x][y * 2] > 400 ? 170 : (map[x][y * 2] > 0 ? 130 : 0));
+              c = map[x][y * 2] > 40 && map[x][y * 2] < 70 ? 180 : c;
+              pixel(x, y * 2, c - 35, c - 25, c);
+            }
+
+          ctx.putImageData(img, 0, 0);
+        }, 20);
+      };
+
+    /********** Lake **********/
+    effects["Lake"] =
+      function () {
+        ctx.drawImage(ocw, 0, 0);
+        var ocwImg = ctx.getImageData(0, 0, 699, 250);
+
+        interval = setInterval(function () {
+          T = T + 1;
+          var f = 0.001;
+          for (y = 0; y < H / 2; y++) {
+            f = f + .002;
+            for (x = 0; x < W; x++) {
+              var s = x + Math.floor(Math.sin(Math.abs(x / f - T / 4)) * 5) + Math.floor(245 - y + Math.sin(Math.abs(y / f - T / 4)) * 5) * ocwImg.width;
+              pixel(x, y * 2, ocwImg.data[s * 4], ocwImg.data[s * 4 + 1], ocwImg.data[s * 4 + 2] * 2);
             }
           }
 
-          interval=setInterval(function(){
-            rect(0, 0, W, H, 0, 0, 0,);
-            for(s=0; s<SC; s++){
-              pixel(stars[s].x, stars[s].y, 255, 255, 255, stars[s].s*40);
-              stars[s].x-=stars[s].s;
-            }
-            ctx.putImageData(img, 0, 0);
-          }, 20);
-        };
+          ctx.putImageData(img, 0, 250);
+        }, 20);
+      };
 
-      /********** Star Field **********/
-      effects["Star Field"]=
-        function(){
-          const SC=300;
-          var stars=[];
+    /********** Fire **********/
+    effects["Fire"] =
+      function () {
+        var map = Array(W).fill(0).map(() => Array(H).fill(0));
+        var fires = [];
 
-          for(s=0; s<SC; s++){
-            stars[s]={
-              x: Math.round(Math.random()*W),
-              y: Math.round(Math.random()*H),
-              z: Math.round(Math.random()*10)
+        interval = setInterval(function () {
+          f = 355;
+          if (fires[0] == null || Math.random() > 0.7)
+            for (n = 0; n < W; n++) {
+              if (Math.random() > 0.9)
+                f = 650 - Math.random() * 450;
+              fires[n] = f;
             }
+
+          var s = 355;
+          for (n = 0; n < W; n++) {
+            map[n][H - 2] = Math.round(Math.random() * fires[n]);
           }
 
-          interval=setInterval(function(){
-            rect(0, 0, W, H, 0, 0, 0,);
-            T++;
-            for(s=0; s<SC; s++){
-              pixel(Math.round((W/2-stars[s].x) / (1+stars[s].z)+W/2), Math.round((H/2-stars[s].y) / (1+stars[s].z)+H/2), 255, 255, 255, 255-stars[s].z*25);
-              if(stars[s].z>0) stars[s].z-=0.05;
-              else stars[s].z=10;
-            }
-            ctx.putImageData(img, 0, 0);
-          }, 20);
-        };
-
-      /********** Backfeed **********/
-      effects["Backfeed"]=
-        function(){
-          var map1=Array(W).fill(0).map(()=>Array(H).fill(0));
-          var map2=Array(W).fill(0).map(()=>Array(H).fill(0));
-            
-          ctx.font="10px tahoma";
-          ctx.fillStyle="#000";
-          ctx.fillRect(0, 0, W, H);
-          ctx.fillStyle="#fff";
-          ctx.fillText("B A C K F E E D", 0, 10);
-          var tImg=ctx.getImageData(0, 0, 70, 10);
-          ctx.fillStyle="#000";
-          ctx.fillRect(0, 0, W, H);
-
-          interval=setInterval(function(){
-            T=(T+1)%360;
-            map1[342][260]=100+Math.round(Math.random()*155);
-            for(a=0; a<50; a++)
-              map1[Math.floor(Math.random()*W)][Math.floor(Math.random()*H)]=Math.round(Math.random()*255);
-
-            map1[Math.round(W/2+Math.sin(T/10)*2)][Math.round(H/2+Math.cos(T/5)*2)]=Math.round(Math.random()*255);
-              
-            if(T>0 && T<200)
-              for(x=0; x<tImg.width; x++)
-                for(y=0; y<tImg.height; y++)
-                 if(tImg.data[(x+y*tImg.width)*4] > 180) 
-                    map1[Math.round(W/2+x-40+Math.sin(T/5)*10)][Math.round(H/2+y-5+Math.cos(T/10)*10)]=T;
-            
-            for(x=0; x<W; x++)
-              for(y=0; y<H; y++)
-                map2[x][y]=map1[Math.round((x+W/2)/2)][Math.round((y+H/2)/2)];
-
-            for(x=1; x<W-1; x++)
-              for(y=1; y<H-1; y++){
-                c=(map2[x+1][y] + map2[x][y+1] + map2[x-1][y] + map2[x][y-1] + map2[x+1][y+1] + map2[x-1][y-1] + map2[x+1][y-1] + map2[x-1][y+1] + map2[x][y])/9;
-                if(c>0) c--;
-                map2[x][y]=c;
-              }
-
-            for(x=0; x<W; x++)
-              for(y=0; y<H/2; y++){
-                pixel(x, y*2, map2[x][y*2]>100 ? map2[x][y*2]-70 : 0, map2[x][y*2], map2[x][y*2]>150 ? map2[x][y*2] : 0);
-              }
-            
-            for(x=0; x<W; x++)
-              for(y=0; y<H; y++)
-                  map1[x][y]=map2[x][y];
-            
-            ctx.putImageData(img, 0, 0);
-          }, 70);
-        };
-
-      /********** Fountain **********/
-      effects["Fountain"]=
-        function(){
-          const GRAVITY=0.04;
-          const DC=500;
-          
-          var drops=[];
-          var map=Array(W).fill(0).map(()=>Array(H).fill(0));
-          
-          y=DC;
-          for(n=0; n<=DC; n++){
-              drops[n]={
-                x: 0,
-                y: H,
-                v: -Math.round(Math.random()*6),
-                xa: 1-Math.random()*2,
-                ya: 0
-              };
-          }
-
-          interval=setInterval(function(){
-              
-            for(n=0; n<=DC; n++){
-                drops[n].ya+=GRAVITY;
-                drops[n].y+=drops[n].ya;
-                if(drops[n].y>H-50){
-                    drops[n].ya=drops[n].v;
-                    drops[n].y=H-50;
-                    drops[n].v++;
-                }
-                if(drops[n].v>=-1) {
-                    drops[n].x=0;
-                    drops[n].ya=Math.round(Math.random()*-4);
-                    drops[n].v=drops[n].ya+1;
-                }
-                drops[n].x+=drops[n].xa;
-                if(W/2+Math.round(drops[n].x)>0 && W/2+Math.round(drops[n].x)<700)
-                    map[W/2+Math.round(drops[n].x)][Math.round(drops[n].y)]=255;
+          for (x = 1; x < W - 1; x++)
+            for (y = 1; y < H - 1; y++) {
+              c = Math.round((map[x + 1][y] + map[x][y + 1] + map[x - 1][y] + map[x][y - 1] + map[x + 1][y + 1] + map[x - 1][y - 1] + map[x + 1][y - 1] + map[x - 1][y + 1] + map[x][y]) / 9);
+              if (c > 1) c = c - 0.5;
+              map[x][y] = c;
+              map[x][y - 1] = c;
             }
 
-            for(x=1; x<W-1; x++)
-              for(y=1; y<H-1; y++){
-                c=(map[x+1][y] + map[x][y+1] + map[x-1][y] + map[x][y-1] + map[x+1][y+1] + map[x-1][y-1] + map[x+1][y-1] + map[x-1][y+1] + map[x][y])/9;
-                if(c>0) c--;
-                map[x][y]=c;
-              }
-
-            for(x=0; x<W; x++)
-              for(y=0; y<H/2; y++){
-                pixel(x, y*2, map[x][y*2]>10 ? 50+map[x][y*2] : 0, map[x][y*2], map[x][y*2]>10 ? 100+map[x][y*2]*2 : 0);
-              }
-          
-            ctx.putImageData(img, 0, 0);
-          }, 20);
-        };
-
-      /********** Metaballs **********/
-      effects["Metaballs"]=
-        function(){
-          var map=Array(W).fill(0).map(()=>Array(H).fill(0));
-
-          interval=setInterval(function(){
-            
-            T+=0.1;
-              
-            for(x=0; x<W/2; x++)
-              for(y=0; y<50; y++){        
-                map[x+W/4][y+80]=700;
-                map[x+W/4][y+H-140]=700;
-              }
-              
-            if(T%150>0 && T%150<50){
-                function calcValue(c){
-                    return c.val+Math.round(c.nz*100);
-                }
-                circle2Map(map, W/2-25+Math.round(Math.sin(T/2)*100), H/2-25+Math.round(Math.cos(T/5)*100), 50, calcValue);
-                circle2Map(map, W/2-25+Math.round(Math.sin(T/3)*100), H/2-25+Math.round(Math.cos(T/4)*100), 50, calcValue);
-                circle2Map(map, W/2-25+Math.round(Math.sin(T/4)*100), H/2-25+Math.round(Math.cos(T/3)*100), 50, calcValue);
-                circle2Map(map, W/2-25+Math.round(Math.sin(T/2)*100), H/2-25+Math.round(Math.cos(T/3)*100), 50, calcValue);
+          for (x = 0; x < W; x++)
+            for (y = 0; y < H / 2; y++) {
+              var c = map[x][y * 2];
+              pixel(x, y * 2, c + c * 3, c * 2, c);
             }
-            
-            if(T%150>60 && T%100<150){
-                function calcValue(c){
-                    return c.val+Math.round(c.nz*100);
-                }
-                circle2Map(map, W/2+50, H/2-25+Math.round(Math.cos(T/2)*120), 50, calcValue);
-                circle2Map(map, W/2+10, H/2-25+Math.round(Math.cos(T/5)*120), 50, calcValue);
-                circle2Map(map, W/2-40, H/2-25+Math.round(Math.sin(T/4)*120), 50, calcValue);
-                circle2Map(map, W/2-90, H/2-25+Math.round(Math.cos(T/3)*120), 50, calcValue);
+          ctx.putImageData(img, 0, 0);
+        }, 5);
+      };
+
+    /********** Corrupt **********/
+    effects["Corrupt"] =
+      function () {
+        ctx.drawImage(sor, 0, 0);
+        var sorImg = ctx.getImageData(0, 0, W - 1, H - 1);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H);
+
+        interval = setInterval(function () {
+          T++;
+          var s;
+          var crp = Math.random();
+          for (y = 0; y < H / 2; y++)
+            for (x = 0; x < W; x++) {
+              if (crp > 0.5) s = Math.floor(x + y * 2 * Math.sin((T % H) * 10) * sorImg.width);
+              else s = x + y * 2 * sorImg.width;
+              pixel(x, y * 2, sorImg.data[s * 4], sorImg.data[s * 4 + 1], sorImg.data[s * 4 + 2]);
             }
-            
-            
-            for(x=1; x<W-1; x++)
-              for(y=1; y<H-1; y++){
-                c=(map[x+1][y] + map[x][y+1] + map[x-1][y] + map[x][y-1] + map[x+1][y+1] + map[x-1][y-1] + map[x+1][y-1] + map[x-1][y+1] + map[x][y])/9;
-                if(c>0) c-=5;
-                map[x][y]=c;
-              }
 
-            for(x=0; x<W; x++)
-              for(y=0; y<H/2; y++){
-                c=map[x][y*2]>950 ? 255 : (map[x][y*2]>400 ? 170 : (map[x][y*2]>0 ? 130 : 0));
-                c=map[x][y*2]>40 && map[x][y*2]<70 ? 180 : c;
-                pixel(x, y*2, c-35, c-25, c);
-              }
-          
-            ctx.putImageData(img, 0, 0);
-          }, 20);
-        };
+          ctx.putImageData(img, 0, 0);
+        }, 20);
+      };
 
-      /********** Lake **********/
-      effects["Lake"]=
-        function(){
-          ctx.drawImage(ocw, 0, 0);
-          var ocwImg=ctx.getImageData(0, 0, 699, 250);
+    /********** Texture **********/
+    effects["Texture"] =
+      function () {
+        ctx.drawImage(tex, 0, 0);
+        var texImg = ctx.getImageData(0, 0, 255, 255);
+        //texture(texImg, 320, 50, 139, 190, 39, 0, 0, 10);
+        texture(texImg, 0, H, 0, 0, W - 100, H - 100, W, 0);
+        ctx.putImageData(img, 0, 0);
+        /*         interval = setInterval(function () {
+                  T++;
+                  texture(texImg, 320 + T, 50, 139, 190, 39, 0, 0, 10);
+                  ctx.putImageData(img, 0, 0);
+                }, 16.6); */
+      };
 
-          interval=setInterval(function(){
-            T=T+1;
-            var f=0.001;
-            for(y=0; y<H/2; y++){
-              f=f+.002;
-              for(x=0; x<W; x++){
-                var s=x+Math.floor(Math.sin(Math.abs(x/f-T/4))*5)+Math.floor(245-y+Math.sin(Math.abs(y/f-T/4))*5)*ocwImg.width;
-                pixel(x, y*2, ocwImg.data[s*4], ocwImg.data[s*4+1], ocwImg.data[s*4+2]*2);
-              }
-            }
-                
-            ctx.putImageData(img, 0, 250);
-          }, 20);
-        };
-        
-      /********** Fire **********/
-      effects["Fire"]=
-        function(){
-          var map=Array(W).fill(0).map(()=>Array(H).fill(0));
-          var fires=[];
+    /********** Linked dots **********/
+    /********** Curtain **********/
+    /********** 2 Circles plasma **********/
+    /********** Amiga endless zoom (switchback) **********/
+    /********** Aurora **********/
+    /********** Smoke **********/
+    /********** Fish flock **********/
+    /********** Rotazoom **********/
+    /********** Kefren bars **********/
+    /********** Fire **********/
+    /********** Shadebobs **********/
+    /********** Perlin plasma **********/
+    /********** Fractals **********/
+    /********** Sinus bobs **********/
+    /********** Morphing **********/
+    /********** Bumpmap **********/
+    /********** Water **********/
+    /********** Voxel landscape **********/
+    /********** Morphing **********/
+    /********** Tree **********/
+    /********** Sinus scroll **********/
+    /********** Twisted bars **********/
+    /********** 3D balls **********/
+    /********** Kefren ball **********/
+    /********** Tunnel **********/
+    /********** Lens **********/
+    /********** Color plasma **********/
+    /********** Bounced jelly boxes **********/
+    /********** Logo manuplations **********/
 
-          interval=setInterval(function(){
-            f=355;
-            if(fires[0]==null || Math.random()>0.7)
-                for(n=0; n<W; n++){
-                  if(Math.random()>0.9)
-                      f=650-Math.random()*450;
-                  fires[n]=f;
-                }
-              
-            var s=355;
-            for(n=0; n<W; n++){
-                map[n][H-2]=Math.round(Math.random()*fires[n]);
-            }
-              
-            for(x=1; x<W-1; x++)
-              for(y=1; y<H-1; y++){
-                c=Math.round((map[x+1][y] + map[x][y+1] + map[x-1][y] + map[x][y-1] + map[x+1][y+1] + map[x-1][y-1] + map[x+1][y-1] + map[x-1][y+1] + map[x][y])/9);
-                if(c>1) c=c-0.5;
-                map[x][y]=c;
-                map[x][y-1]=c;
-              }
-              
-            for(x=0; x<W; x++)
-              for(y=0; y<H/2; y++){
-                var c=map[x][y*2];
-                pixel(x, y*2, c+c*3, c*2, c);
-              } 
-            ctx.putImageData(img, 0, 0);
-          }, 5);
-        };
-        
-      /********** Corrupt **********/
-      effects["Corrupt"]=
-        function(){
-          ctx.drawImage(sor, 0, 0);
-          var sorImg=ctx.getImageData(0, 0, W-1, H-1);
-          ctx.fillStyle="#000";
-          ctx.fillRect(0, 0, W, H);
+  </script>
+</body>
 
-          interval=setInterval(function(){
-            T++;
-            var s;
-            var crp=Math.random();
-            for(y=0; y<H/2; y++)
-              for(x=0; x<W; x++){
-                if(crp>0.5) s=Math.floor(x+y*2*Math.sin((T%H)*10)*sorImg.width);
-                else s=x+y*2*sorImg.width;
-                pixel(x, y*2, sorImg.data[s*4], sorImg.data[s*4+1], sorImg.data[s*4+2]);
-              }
-
-            ctx.putImageData(img, 0, 0);
-          }, 20);
-        };
-        
-        /********** Linked dots **********/
-        /********** Curtain **********/
-        /********** 2 Circles plasma **********/
-        /********** Amiga endless zoom (switchback) **********/
-        /********** Aurora **********/
-        /********** Smoke **********/
-        /********** Fish flock **********/
-        /********** Rotazoom **********/
-        /********** Kefren bars **********/
-        /********** Fire **********/
-        /********** Shadebobs **********/
-        /********** Perlin plasma **********/
-        /********** Fractals **********/
-        /********** Sinus bobs **********/
-        /********** Morphing **********/
-        /********** Bumpmap **********/
-        /********** Water **********/
-        /********** Voxel landscape **********/
-        /********** Morphing **********/
-        /********** Tree **********/
-        /********** Sinus scroll **********/
-        /********** Twisted bars **********/
-        /********** 3D balls **********/
-        /********** Kefren ball **********/
-        /********** Tunnel **********/
-        /********** Lens **********/
-        /********** Color plasma **********/
-        /********** Bounced jelly boxes **********/
-        /********** Logo manuplations **********/
-        
-    </script>
-  </body>
 </html>
