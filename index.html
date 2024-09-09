@@ -54,34 +54,47 @@
     }
 
     function texture(img, x1, y1, x2, y2, x3, y3, x4, y4) {
-      let e = Math.abs(x3 - x1) + Math.abs(y3 - y1);
-      let f = Math.abs(x4 - x2) + Math.abs(y4 - y2);
-      if (f > e) e = f;
-      let sx = (x3 - x1) / e;
-      let sy = (y3 - y1) / e;
-      let ex = (x4 - x2) / e;
-      let ey = (y4 - y2) / e;
-      let tx = x1;
-      let ty = y1;
-      let gx = x2;
-      let gy = y2;
-      for (let y = 0; y < e; y++) {
-        let fx = tx;
-        let fy = ty;
-        let d = Math.abs(gx - tx) + Math.abs(gy - ty);
-        d++;
-        let dx = (gx - tx) / d;
-        let dy = (gy - ty) / d;
-        for (let x = 0; x < d; x++) {
-          let c = (parseInt(x * img.width / d) + parseInt(y * img.height / e) * img.width) * 4;
-          pixel(fx, fy, img.data[c], img.data[c + 1], img.data[c + 2]);
-          fx += dx;
-          fy += dy;
+      // Maksimum uzunluğu hesapla
+      let maxLength = Math.max(
+        Math.abs(x3 - x1) + Math.abs(y3 - y1),
+        Math.abs(x4 - x2) + Math.abs(y4 - y2)
+      );
+
+      // Artış oranlarını hesapla
+      let sx = (x3 - x1) / maxLength;
+      let sy = (y3 - y1) / maxLength;
+      let ex = (x4 - x2) / maxLength;
+      let ey = (y4 - y2) / maxLength;
+
+      // Başlangıç noktalarını belirle
+      let startX1 = x1, startY1 = y1;
+      let startX2 = x2, startY2 = y2;
+
+      for (let y = 0; y < maxLength; y++) {
+        let currentX1 = startX1, currentY1 = startY1;
+        let deltaLength = Math.abs(startX2 - startX1) + Math.abs(startY2 - startY1) + 1;
+
+        // x ve y artışlarını hesapla
+        let dx = (startX2 - startX1) / deltaLength;
+        let dy = (startY2 - startY1) / deltaLength;
+
+        for (let x = 0; x < deltaLength; x++) {
+          // Pikselin imaj verisindeki pozisyonunu hesapla
+          let imgIndex = (parseInt(x * img.width / deltaLength) + parseInt(y * img.height / maxLength) * img.width) * 4;
+
+          // Pikseli çiz
+          pixel(currentX1, currentY1, img.data[imgIndex], img.data[imgIndex + 1], img.data[imgIndex + 2]);
+
+          // x ve y pozisyonlarını güncelle
+          currentX1 += dx;
+          currentY1 += dy;
         }
-        tx += sx;
-        ty += sy;
-        gx += ex;
-        gy += ey;
+
+        // Başlangıç noktalarını güncelle
+        startX1 += sx;
+        startY1 += sy;
+        startX2 += ex;
+        startY2 += ey;
       }
     }
 
@@ -430,14 +443,14 @@
     /********** Texture **********/
     effects["Texture"] =
       function () {
-        ctx.drawImage(tex, 0, 0);
-        var texImg = ctx.getImageData(0, 0, 255, 255);
+        ctx.drawImage(sor, 0, 0);
+        var texImg = ctx.getImageData(0, 0, 700, 500);
         //texture(texImg, 320, 50, 139, 190, 39, 0, 0, 10);
         texture(texImg, 0, H, 0, 0, W - 100, H - 100, W, 0);
         ctx.putImageData(img, 0, 0);
         /*         interval = setInterval(function () {
                   T++;
-                  texture(texImg, 320 + T, 50, 139, 190, 39, 0, 0, 10);
+                  texture(texImg, 0, H, 0, 0, W - T * 2, H - T, W, 0);
                   ctx.putImageData(img, 0, 0);
                 }, 16.6); */
       };
