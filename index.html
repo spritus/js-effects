@@ -124,9 +124,9 @@
     effects["Snowy TV"] =
       function () {
         interval = setInterval(function () {
-          for (x = 0; x < W; x++)
-            for (y = 0; y < H; y++) {
-              c = Math.round(Math.random() * 255);
+          for (let x = 0; x < W; x++)
+            for (let y = 0; y < H; y++) {
+              let c = Math.round(Math.random() * 255);
               pixel(x, y * 2, c, c, c);
             }
           ctx.putImageData(img, 0, 0);
@@ -443,20 +443,29 @@
     /********** 2 Circles plasma **********/
     effects["Textured Cube"] =
       function () {
-        let cube = [[-10, -10, -10], [10, -10, -10], [10, 10, -10], [-10, 10, -10], [-10, -10, 10], [10, -10, 10], [10, 10, 10], [-10, 10, 10]];
-        let surfaces = [[0, 1, 3, 2], [1, 0, 5, 4], [3, 2, 7, 6], [2, 1, 6, 5], [4, 0, 7, 3], [6, 5, 4, 7]];
         ctx.drawImage(sor, 0, 0);
         let sorImg = ctx.getImageData(0, 0, W - 1, H - 1);
         let plsImg = ctx.createImageData(256, 256);
+        let snowImg = ctx.createImageData(256, 256);
+        let cube = [[-10, -10, -10], [10, -10, -10], [10, 10, -10], [-10, 10, -10], [-10, -10, 10], [10, -10, 10], [10, 10, 10], [-10, 10, 10]];
+        let surfaces = [[0, 1, 3, 2, snowImg], [1, 0, 5, 4, plsImg], [3, 2, 7, 6, plsImg], [2, 1, 6, 5, sorImg], [4, 0, 7, 3, plsImg], [6, 5, 4, 7, snowImg]];
 
         interval = setInterval(function () {
           T += .02;
           rect(0, 0, W, H, 0, 0, 0);
-          for (x = 0; x < 255; x++)
-            for (y = 0; y < 255; y += 2) {
+          for (let x = 0; x < 255; x++)
+            for (let y = 0; y < 255; y++) {
               plsImg.data[(x + y * 256) * 4] = Math.sin(x / 50 + T * 3) * 5 + Math.cos(y / 50 - T * 5) * 100 + 100;
               plsImg.data[(x + y * 256) * 4 + 1] = Math.sin(y / 50 + T * 3) * 50 + Math.cos(x / 50 + T * 4) * 80 + 100;
               plsImg.data[(x + y * 256) * 4 + 2] = Math.sin(x / 50 + T * 2) * 50 + Math.cos(y / 50 + T * 3) * 80 + 100;
+            }
+
+          for (let x = 0; x < 255; x++)
+            for (let y = 0; y < 255; y++) {
+              let c = Math.round(Math.random() * 255);
+              snowImg.data[(x + y * 256) * 4] = c;
+              snowImg.data[(x + y * 256) * 4 + 1] = c;
+              snowImg.data[(x + y * 256) * 4 + 2] = c;
             }
 
           let pos = [];
@@ -475,7 +484,7 @@
               x4 = pos[s[3]][0], y4 = pos[s[3]][1];
             let normal = (y1 - y3) * (x2 - x1) - (x1 - x3) * (y2 - y1);
             if (normal < 0)
-              texture(plsImg, x1, y1, x2, y2, x3, y3, x4, y4);
+              texture(s[4], x1, y1, x2, y2, x3, y3, x4, y4);
           }
           ctx.putImageData(img, 0, 0);
         }, 16.6);
