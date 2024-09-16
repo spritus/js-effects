@@ -16,13 +16,15 @@
   <script>
     const W = 700;
     const H = 500;
+    const DELAY = 16.6;
 
-    var ctx = cnv.getContext("2d");
+    const ctx = cnv.getContext("2d");
 
-    var img = ctx.createImageData(W, H);
-    var scr = img.data;
+    const img = ctx.createImageData(W, H);
+    let scr = img.data;
 
     function pixel(x, y, r, g, b, a = 255) {
+      if (x < 0 || x >= W || y < 0 || y >= H) return;
       x = parseInt(x);
       y = parseInt(y);
       scr[(x + y * W) * 4] = r;
@@ -32,21 +34,21 @@
     }
 
     function rect(x, y, w, h, r, g, b, a = 255) {
-      for (x = 0; x < w; x++)
-        for (y = 0; y < h; y++) {
-          scr[(x + y * W) * 4] = r;
-          scr[(x + y * W) * 4 + 1] = g;
-          scr[(x + y * W) * 4 + 2] = b;
-          scr[(x + y * W) * 4 + 3] = a;
+      for (let i = x; i < (x + w); i++)
+        for (let j = y; j < (y + h); j++) {
+          scr[(i + j * W) * 4] = r;
+          scr[(i + j * W) * 4 + 1] = g;
+          scr[(i + j * W) * 4 + 2] = b;
+          scr[(i + j * W) * 4 + 3] = a;
         }
     }
 
     function circle2Map(map, x, y, r, val) {
-      for (var i = 0; i < r; i++)
-        for (var j = 0; j < r; j++) {
-          var nx = (i - r / 2) / (r / 2);
-          var ny = (j - r / 2) / (r / 2);
-          var nz = 1 - Math.sqrt(nx * nx + ny * ny);
+      for (let i = 0; i < r; i++)
+        for (let j = 0; j < r; j++) {
+          let nx = (i - r / 2) / (r / 2);
+          let ny = (j - r / 2) / (r / 2);
+          let nz = 1 - Math.sqrt(nx * nx + ny * ny);
           if (nz > 0)
             map[x + i][y + j] = typeof val == "function" ? val(vars = { val: map[x + i][y + j], nz: nz, i: i, j: j }) : val;
         }
@@ -97,21 +99,21 @@
       }
     }
 
-
-    var effects = [];
-    var interval;
-    var last;
-    var T = 0;
+    const effects = [];
+    let interval;
+    let last;
+    let T = 0;
 
     selectEffect.onchange = function () {
       if (interval != null) clearInterval(interval);
+      T = 0;
       rect(0, 0, W, H, 0, 0, 0,);
       effects[selectEffect.value]();
     }
 
     window.onload = function () {
       ocw.crossOrigin = "Anonymous";
-      for (e in effects) {
+      for (let e in effects) {
         var o = document.createElement("option");
         o.text = e;
         o.val = e;
@@ -130,7 +132,7 @@
               pixel(x, y * 2, c, c, c);
             }
           ctx.putImageData(img, 0, 0);
-        }, 10);
+        }, DELAY);
       };
 
     /********** Plasma **********/
@@ -143,7 +145,7 @@
               pixel(x, y * 2, Math.sin(x / 50 + T / 5) * 5 + Math.cos(y / 50 - T / 20) * 100 + 100, Math.sin(y / 50 + T / 5) * 50 + Math.cos(x / 50 + T / 10) * 80 + 100, Math.sin(x / 50 + T / 5) * 50 + Math.cos(y / 50 + T / 7) * 80 + 100);
             }
           ctx.putImageData(img, 0, 0);
-        }, 50);
+        }, DELAY);
       };
 
     /********** Stars **********/
@@ -164,17 +166,18 @@
           rect(0, 0, W, H, 0, 0, 0,);
           for (s = 0; s < SC; s++) {
             pixel(stars[s].x, stars[s].y, 255, 255, 255, stars[s].s * 40);
-            stars[s].x -= stars[s].s;
+            if (stars[s].x < 0) stars[s].x = W;
+            else stars[s].x -= stars[s].s;
           }
           ctx.putImageData(img, 0, 0);
-        }, 20);
+        }, DELAY);
       };
 
     /********** Star Field **********/
     effects["Star Field"] =
       function () {
         const SC = 300;
-        var stars = [];
+        let stars = [];
 
         for (s = 0; s < SC; s++) {
           stars[s] = {
@@ -193,7 +196,7 @@
             else stars[s].z = 10;
           }
           ctx.putImageData(img, 0, 0);
-        }, 20);
+        }, DELAY);
       };
 
     /********** Backfeed **********/
@@ -208,11 +211,9 @@
         ctx.fillStyle = "#fff";
         ctx.fillText("B A C K F E E D", 0, 10);
         var tImg = ctx.getImageData(0, 0, 70, 10);
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, W, H);
 
         interval = setInterval(function () {
-          T = (T + 1) % 360;
+          T = (T + .5) % 360;
           map1[342][260] = 100 + Math.round(Math.random() * 155);
           for (a = 0; a < 50; a++)
             map1[Math.floor(Math.random() * W)][Math.floor(Math.random() * H)] = Math.round(Math.random() * 255);
@@ -225,28 +226,30 @@
                 if (tImg.data[(x + y * tImg.width) * 4] > 180)
                   map1[Math.round(W / 2 + x - 40 + Math.sin(T / 5) * 10)][Math.round(H / 2 + y - 5 + Math.cos(T / 10) * 10)] = T;
 
-          for (x = 0; x < W; x++)
-            for (y = 0; y < H; y++)
-              map2[x][y] = map1[Math.round((x + W / 2) / 2)][Math.round((y + H / 2) / 2)];
+          if (T % 2 == 0) {
+            for (x = 0; x < W; x++)
+              for (y = 0; y < H; y++)
+                map2[x][y] = map1[Math.round((x + W / 2) / 2)][Math.round((y + H / 2) / 2)];
 
-          for (x = 1; x < W - 1; x++)
-            for (y = 1; y < H - 1; y++) {
-              c = (map2[x + 1][y] + map2[x][y + 1] + map2[x - 1][y] + map2[x][y - 1] + map2[x + 1][y + 1] + map2[x - 1][y - 1] + map2[x + 1][y - 1] + map2[x - 1][y + 1] + map2[x][y]) / 9;
-              if (c > 0) c--;
-              map2[x][y] = c;
-            }
+            for (x = 1; x < W - 1; x++)
+              for (y = 1; y < H - 1; y++) {
+                c = (map2[x + 1][y] + map2[x][y + 1] + map2[x - 1][y] + map2[x][y - 1] + map2[x + 1][y + 1] + map2[x - 1][y - 1] + map2[x + 1][y - 1] + map2[x - 1][y + 1] + map2[x][y]) / 9;
+                if (c > 0) c--;
+                map2[x][y] = c;
+              }
 
-          for (x = 0; x < W; x++)
-            for (y = 0; y < H / 2; y++) {
-              pixel(x, y * 2, map2[x][y * 2] > 100 ? map2[x][y * 2] - 70 : 0, map2[x][y * 2], map2[x][y * 2] > 150 ? map2[x][y * 2] : 0);
-            }
+            for (x = 0; x < W; x++)
+              for (y = 0; y < H / 2; y++) {
+                pixel(x, y * 2, map2[x][y * 2] > 100 ? map2[x][y * 2] - 70 : 0, map2[x][y * 2], map2[x][y * 2] > 150 ? map2[x][y * 2] : 0);
+              }
 
-          for (x = 0; x < W; x++)
-            for (y = 0; y < H; y++)
-              map1[x][y] = map2[x][y];
+            for (x = 0; x < W; x++)
+              for (y = 0; y < H; y++)
+                map1[x][y] = map2[x][y];
+          }
 
           ctx.putImageData(img, 0, 0);
-        }, 70);
+        }, DELAY);
       };
 
     /********** Fountain **********/
@@ -302,7 +305,7 @@
             }
 
           ctx.putImageData(img, 0, 0);
-        }, 20);
+        }, DELAY);
       };
 
     /********** Metaballs **********/
@@ -356,7 +359,7 @@
             }
 
           ctx.putImageData(img, 0, 0);
-        }, 20);
+        }, DELAY);
       };
 
     /********** Lake **********/
@@ -377,7 +380,7 @@
           }
 
           ctx.putImageData(img, 0, 250);
-        }, 20);
+        }, DELAY);
       };
 
     /********** Fire **********/
@@ -414,7 +417,7 @@
               pixel(x, y * 2, c + c * 3, c * 2, c);
             }
           ctx.putImageData(img, 0, 0);
-        }, 5);
+        }, DELAY);
       };
 
     /********** Corrupt **********/
@@ -437,35 +440,36 @@
             }
 
           ctx.putImageData(img, 0, 0);
-        }, 20);
+        }, DELAY);
       };
 
     /********** Textured Cube **********/
     effects["Textured Cube"] =
       function () {
+        const EW = 100;
         ctx.drawImage(sor, 0, 0);
         let sorImg = ctx.getImageData(0, 0, W - 1, H - 1);
-        let plsImg = ctx.createImageData(256, 256);
-        let snowImg = ctx.createImageData(256, 256);
+        let plsImg = ctx.createImageData(EW, EW);
+        let snowImg = ctx.createImageData(EW, EW);
         let cube = [[-10, -10, -10], [10, -10, -10], [10, 10, -10], [-10, 10, -10], [-10, -10, 10], [10, -10, 10], [10, 10, 10], [-10, 10, 10]];
         let surfaces = [[0, 1, 3, 2, snowImg], [1, 0, 5, 4, plsImg], [3, 2, 7, 6, plsImg], [2, 1, 6, 5, sorImg], [4, 0, 7, 3, plsImg], [6, 5, 4, 7, snowImg]];
 
         interval = setInterval(function () {
           T += .02;
           rect(0, 0, W, H, 0, 0, 0);
-          for (let x = 0; x < 255; x++)
-            for (let y = 0; y < 255; y++) {
-              plsImg.data[(x + y * 256) * 4] = Math.sin(x / 50 + T * 3) * 5 + Math.cos(y / 50 - T * 5) * 100 + 100;
-              plsImg.data[(x + y * 256) * 4 + 1] = Math.sin(y / 50 + T * 3) * 50 + Math.cos(x / 50 + T * 4) * 80 + 100;
-              plsImg.data[(x + y * 256) * 4 + 2] = Math.sin(x / 50 + T * 2) * 50 + Math.cos(y / 50 + T * 3) * 80 + 100;
+          for (let x = 0; x < EW; x++)
+            for (let y = 0; y < EW; y++) {
+              plsImg.data[(x + y * EW) * 4] = Math.sin(x / 20 + T * 3) * 5 + Math.cos(y / 30 - T * 5) * 100 + 100;
+              plsImg.data[(x + y * EW) * 4 + 1] = Math.sin(y / 20 + T * 3) * 50 + Math.cos(x / 30 + T * 4) * 80 + 100;
+              plsImg.data[(x + y * EW) * 4 + 2] = Math.sin(x / 20 + T * 2) * 50 + Math.cos(y / 30 + T * 3) * 80 + 100;
             }
 
-          for (let x = 0; x < 255; x++)
-            for (let y = 0; y < 255; y++) {
+          for (let x = 0; x < EW; x++)
+            for (let y = 0; y < EW; y++) {
               let c = Math.round(Math.random() * 255);
-              snowImg.data[(x + y * 256) * 4] = c;
-              snowImg.data[(x + y * 256) * 4 + 1] = c;
-              snowImg.data[(x + y * 256) * 4 + 2] = c;
+              snowImg.data[(x + y * EW) * 4] = c;
+              snowImg.data[(x + y * EW) * 4 + 1] = c;
+              snowImg.data[(x + y * EW) * 4 + 2] = c;
             }
 
           let pos = [];
@@ -487,7 +491,22 @@
               texture(s[4], x1, y1, x2, y2, x3, y3, x4, y4);
           }
           ctx.putImageData(img, 0, 0);
-        }, 16.6);
+        }, DELAY);
+      };
+
+    /********** Rotazoom **********/
+    effects["Rotazoom"] =
+      function () {
+        const penta = new Image();
+        penta.src = "./penta.png";
+        penta.onload = () => {
+          ctx.drawImage(penta, 0, 0);
+        }
+
+        //ctx.drawImage(sor, 0, 0);
+        let sorImg = ctx.getImageData(0, 0, W - 1, H - 1);
+        interval = setInterval(function () {
+        }, DELAY);
       };
 
     /********** Linked dots **********/
@@ -497,7 +516,6 @@
     /********** Aurora **********/
     /********** Smoke **********/
     /********** Fish flock **********/
-    /********** Rotazoom **********/
     /********** Kefren bars **********/
     /********** Fire **********/
     /********** Shadebobs **********/
