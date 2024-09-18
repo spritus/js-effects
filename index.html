@@ -4,6 +4,7 @@
 <body style="background-color: dimgrey">
   <img src="ocw.png" id="ocw" style="display:none">
   <img src="sorcerer.png" id="sor" style="display:none">
+  <img src="penta.png" id="pen" style="display:none">
   <center>
     <br><br>
     <canvas id="cnv" width=700 height=500 style="background-color:black; border:solid 3px white;">
@@ -36,10 +37,7 @@
     function rect(x, y, w, h, r, g, b, a = 255) {
       for (let i = x; i < (x + w); i++)
         for (let j = y; j < (y + h); j++) {
-          scr[(i + j * W) * 4] = r;
-          scr[(i + j * W) * 4 + 1] = g;
-          scr[(i + j * W) * 4 + 2] = b;
-          scr[(i + j * W) * 4 + 3] = a;
+          pixel(i, j, r, g, b, a);
         }
     }
 
@@ -165,7 +163,7 @@
         interval = setInterval(function () {
           rect(0, 0, W, H, 0, 0, 0,);
           for (s = 0; s < SC; s++) {
-            pixel(stars[s].x, stars[s].y, 255, 255, 255, stars[s].s * 40);
+            rect(stars[s].x, stars[s].y, 3, 3, 255, 255, 255, stars[s].s * 40);
             if (stars[s].x < 0) stars[s].x = W;
             else stars[s].x -= stars[s].s;
           }
@@ -191,10 +189,46 @@
           rect(0, 0, W, H, 0, 0, 0,);
           T++;
           for (s = 0; s < SC; s++) {
-            pixel(Math.round((W / 2 - stars[s].x) / (1 + stars[s].z) + W / 2), Math.round((H / 2 - stars[s].y) / (1 + stars[s].z) + H / 2), 255, 255, 255, 255 - stars[s].z * 25);
+            rect(Math.round((W / 2 - stars[s].x) / (1 + stars[s].z) + W / 2), Math.round((H / 2 - stars[s].y) / (1 + stars[s].z) + H / 2), 3, 3, 255, 255, 255, 255 - stars[s].z * 25);
             if (stars[s].z > 0) stars[s].z -= 0.05;
             else stars[s].z = 10;
           }
+          ctx.putImageData(img, 0, 0);
+        }, DELAY);
+      };
+
+    /********** Snowing **********/
+    effects["Snowing"] =
+      function () {
+        const SC = 400;
+        let snows = [];
+
+        ctx.drawImage(ocw, 0, 0);
+        let ocwImg = ctx.getImageData(0, 0, 400, 250);
+
+        for (s = 0; s < SC; s++) {
+          snows[s] = {
+            x: Math.round(Math.random() * W),
+            y: Math.round(Math.random() * H),
+            s: 1 + Math.round(Math.random() * 3)
+          }
+        }
+
+        interval = setInterval(function () {
+          //rect(0, 0, W, H, 0, 0, 0, 0);
+          for (let y = 0; y < H; y++)
+            for (let x = 0; x < W; x++) {
+              let c = (parseInt(y / 2) * 400 + parseInt(x / 1.8)) * 4;
+              pixel(x, y, ocwImg.data[c], ocwImg.data[c + 1], ocwImg.data[c + 2]);
+            }
+          for (s = 0; s < SC; s++) {
+            rect(snows[s].x, snows[s].y, 3, 3, 255, 255, 255);
+            if (snows[s].y > H) snows[s].y = 0;
+            else snows[s].y += snows[s].s;
+            if (snows[s].x > W) snows[s].x = 0;
+            else snows[s].x += Math.random() * 4;
+          }
+
           ctx.putImageData(img, 0, 0);
         }, DELAY);
       };
@@ -374,7 +408,7 @@
           for (y = 0; y < H / 2; y++) {
             f = f + .002;
             for (x = 0; x < W; x++) {
-              var s = x + Math.floor(Math.sin(Math.abs(x / f - T / 4)) * 5) + Math.floor(245 - y + Math.sin(Math.abs(y / f - T / 4)) * 5) * ocwImg.width;
+              var s = x + Math.floor(Math.sin(Math.abs(x - T / 4)) * 3) + Math.floor(245 - y + Math.sin(Math.abs(y / f - T / 4)) * 5) * ocwImg.width;
               pixel(x, y * 2, ocwImg.data[s * 4], ocwImg.data[s * 4 + 1], ocwImg.data[s * 4 + 2] * 2);
             }
           }
@@ -497,15 +531,28 @@
     /********** Rotazoom **********/
     effects["Rotazoom"] =
       function () {
-        const penta = new Image();
-        penta.src = "./penta.png";
-        penta.onload = () => {
-          ctx.drawImage(penta, 0, 0);
-        }
+        ctx.drawImage(pen, 0, 0);
+        let penImg = ctx.getImageData(0, 0, 256, 256);
+        let b = 1;
+        let n = .03;
 
-        //ctx.drawImage(sor, 0, 0);
-        let sorImg = ctx.getImageData(0, 0, W - 1, H - 1);
         interval = setInterval(function () {
+          T++;
+          b += n;
+          if (b >= 5 || b <= 0.1) n *= -1;
+
+          for (let y = 0; y < H / 2; y++)
+            for (let x = 0; x < W; x++) {
+              let xn = (W / 2 - Math.sin(T / 200) * x + - Math.cos(T / 200) * y);
+              xn = xn / b % 256;
+              if (xn < 0) xn += 256;
+              let yn = (H / 4 - Math.cos(T / 200) * x + Math.sin(T / 200) * y);
+              yn = yn / b % 256;
+              if (yn < 0) yn += 256;
+              let c = (parseInt(xn) + parseInt(yn) * 256) * 4;
+              pixel(x, y * 2, penImg.data[c], penImg.data[c + 1], penImg.data[c + 2]);
+            }
+          ctx.putImageData(img, 0, 0);
         }, DELAY);
       };
 
