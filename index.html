@@ -112,7 +112,7 @@
     window.onload = function () {
       ocw.crossOrigin = "Anonymous";
       for (let e in effects) {
-        var o = document.createElement("option");
+        let o = document.createElement("option");
         o.text = e;
         o.val = e;
         selectEffect.appendChild(o);
@@ -127,7 +127,7 @@
           for (let x = 0; x < W; x++)
             for (let y = 0; y < H; y++) {
               let c = Math.round(Math.random() * 255);
-              pixel(x, y * 2, c, c, c);
+              pixel(x, y, c, c, c);
             }
           ctx.putImageData(img, 0, 0);
         }, DELAY);
@@ -140,7 +140,7 @@
           T++;
           for (x = 0; x < W; x++)
             for (y = 0; y < H; y++) {
-              pixel(x, y * 2, Math.sin(x / 50 + T / 5) * 5 + Math.cos(y / 50 - T / 20) * 100 + 100, Math.sin(y / 50 + T / 5) * 50 + Math.cos(x / 50 + T / 10) * 80 + 100, Math.sin(x / 50 + T / 5) * 50 + Math.cos(y / 50 + T / 7) * 80 + 100);
+              pixel(x, y, Math.sin(x / 50 + T / 5) * 5 + Math.cos(y / 50 - T / 20) * 100 + 100, Math.sin(y / 50 + T / 5) * 50 + Math.cos(x / 50 + T / 10) * 80 + 100, Math.sin(x / 50 + T / 5) * 50 + Math.cos(y / 50 + T / 7) * 80 + 100);
             }
           ctx.putImageData(img, 0, 0);
         }, DELAY);
@@ -150,7 +150,7 @@
     effects["Stars"] =
       function () {
         const SC = 300;
-        var stars = [];
+        let stars = [];
 
         for (s = 0; s < SC; s++) {
           stars[s] = {
@@ -236,15 +236,15 @@
     /********** Backfeed **********/
     effects["Backfeed"] =
       function () {
-        var map1 = Array(W).fill(0).map(() => Array(H).fill(0));
-        var map2 = Array(W).fill(0).map(() => Array(H).fill(0));
+        let map1 = Array(W).fill(0).map(() => Array(H).fill(0));
+        let map2 = Array(W).fill(0).map(() => Array(H).fill(0));
 
         ctx.font = "10px tahoma";
         ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, W, H);
         ctx.fillStyle = "#fff";
         ctx.fillText("B A C K F E E D", 0, 10);
-        var tImg = ctx.getImageData(0, 0, 70, 10);
+        let tImg = ctx.getImageData(0, 0, 70, 10);
 
         interval = setInterval(function () {
           T = (T + .5) % 360;
@@ -273,8 +273,8 @@
               }
 
             for (x = 0; x < W; x++)
-              for (y = 0; y < H / 2; y++) {
-                pixel(x, y * 2, map2[x][y * 2] > 100 ? map2[x][y * 2] - 70 : 0, map2[x][y * 2], map2[x][y * 2] > 150 ? map2[x][y * 2] : 0);
+              for (y = 0; y < H; y++) {
+                pixel(x, y, map2[x][y] > 100 ? map2[x][y] - 70 : 0, map2[x][y], map2[x][y] > 150 ? map2[x][y] : 0);
               }
 
             for (x = 0; x < W; x++)
@@ -292,8 +292,8 @@
         const GRAVITY = 0.04;
         const DC = 500;
 
-        var drops = [];
-        var map = Array(W).fill(0).map(() => Array(H).fill(0));
+        let drops = [];
+        let map = Array(W).fill(0).map(() => Array(H).fill(0));
 
         y = DC;
         for (n = 0; n <= DC; n++) {
@@ -334,8 +334,8 @@
             }
 
           for (x = 0; x < W; x++)
-            for (y = 0; y < H / 2; y++) {
-              pixel(x, y * 2, map[x][y * 2] > 10 ? 50 + map[x][y * 2] : 0, map[x][y * 2], map[x][y * 2] > 10 ? 100 + map[x][y * 2] * 2 : 0);
+            for (y = 0; y < H; y++) {
+              pixel(x, y, map[x][y] > 10 ? 50 + map[x][y] : 0, map[x][y], map[x][y] > 10 ? 100 + map[x][y] * 2 : 0);
             }
 
           ctx.putImageData(img, 0, 0);
@@ -345,7 +345,7 @@
     /********** Metaballs **********/
     effects["Metaballs"] =
       function () {
-        var map = Array(W).fill(0).map(() => Array(H).fill(0));
+        let map = Array(W).fill(0).map(() => Array(H).fill(0));
 
         interval = setInterval(function () {
 
@@ -386,10 +386,10 @@
             }
 
           for (x = 0; x < W; x++)
-            for (y = 0; y < H / 2; y++) {
-              c = map[x][y * 2] > 950 ? 255 : (map[x][y * 2] > 400 ? 170 : (map[x][y * 2] > 0 ? 130 : 0));
-              c = map[x][y * 2] > 40 && map[x][y * 2] < 70 ? 180 : c;
-              pixel(x, y * 2, c - 35, c - 25, c);
+            for (y = 0; y < H; y++) {
+              c = map[x][y] > 950 ? 255 : (map[x][y] > 400 ? 170 : (map[x][y] > 0 ? 130 : 0));
+              c = map[x][y] > 40 && map[x][y] < 70 ? 180 : c;
+              pixel(x, y, c - 35, c - 25, c);
             }
 
           ctx.putImageData(img, 0, 0);
@@ -400,16 +400,16 @@
     effects["Lake"] =
       function () {
         ctx.drawImage(ocw, 0, 0);
-        var ocwImg = ctx.getImageData(0, 0, 699, 250);
+        let ocwImg = ctx.getImageData(0, 0, 699, 250);
 
         interval = setInterval(function () {
           T = T + 1;
-          var f = 0.001;
-          for (y = 0; y < H / 2; y++) {
+          let f = 0.001;
+          for (y = 0; y < H; y++) {
             f = f + .002;
             for (x = 0; x < W; x++) {
-              var s = x + Math.floor(Math.sin(Math.abs(x - T / 4)) * 3) + Math.floor(245 - y + Math.sin(Math.abs(y / f - T / 4)) * 5) * ocwImg.width;
-              pixel(x, y * 2, ocwImg.data[s * 4], ocwImg.data[s * 4 + 1], ocwImg.data[s * 4 + 2] * 2);
+              let s = x + Math.floor(Math.sin(Math.abs(x - T / 4)) * 3) + Math.floor(245 - y + Math.sin(Math.abs(y / f - T / 4)) * 5) * ocwImg.width;
+              pixel(x, y, ocwImg.data[s * 4], ocwImg.data[s * 4 + 1], ocwImg.data[s * 4 + 2] * 2);
             }
           }
 
@@ -420,8 +420,8 @@
     /********** Fire **********/
     effects["Fire"] =
       function () {
-        var map = Array(W).fill(0).map(() => Array(H).fill(0));
-        var fires = [];
+        let map = Array(W).fill(0).map(() => Array(H).fill(0));
+        let fires = [];
 
         interval = setInterval(function () {
           f = 355;
@@ -432,7 +432,7 @@
               fires[n] = f;
             }
 
-          var s = 355;
+          let s = 355;
           for (n = 0; n < W; n++) {
             map[n][H - 2] = Math.round(Math.random() * fires[n]);
           }
@@ -446,9 +446,9 @@
             }
 
           for (x = 0; x < W; x++)
-            for (y = 0; y < H / 2; y++) {
-              var c = map[x][y * 2];
-              pixel(x, y * 2, c + c * 3, c * 2, c);
+            for (y = 0; y < H ; y++) {
+              let c = map[x][y ];
+              pixel(x, y , c + c * 3, c * 2, c);
             }
           ctx.putImageData(img, 0, 0);
         }, DELAY);
@@ -458,14 +458,14 @@
     effects["Corrupt"] =
       function () {
         ctx.drawImage(sor, 0, 0);
-        var sorImg = ctx.getImageData(0, 0, W - 1, H - 1);
+        let sorImg = ctx.getImageData(0, 0, W - 1, H - 1);
         ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, W, H);
 
         interval = setInterval(function () {
           T++;
-          var s;
-          var crp = Math.random();
+          let s;
+          let crp = Math.random();
           for (y = 0; y < H / 2; y++)
             for (x = 0; x < W; x++) {
               if (crp > 0.5) s = Math.floor(x + y * 2 * Math.sin((T % H) * 10) * sorImg.width);
@@ -534,23 +534,23 @@
         ctx.drawImage(pen, 0, 0);
         let penImg = ctx.getImageData(0, 0, 256, 256);
         let b = 1;
-        let n = .03;
+        let n = .05;
 
         interval = setInterval(function () {
           T++;
           b += n;
           if (b >= 5 || b <= 0.1) n *= -1;
 
-          for (let y = 0; y < H / 2; y++)
+          for (let y = 0; y < H; y++)
             for (let x = 0; x < W; x++) {
               let xn = (W / 2 - Math.sin(T / 200) * x + - Math.cos(T / 200) * y);
               xn = xn / b % 256;
               if (xn < 0) xn += 256;
-              let yn = (H / 4 - Math.cos(T / 200) * x + Math.sin(T / 200) * y);
+              let yn = (H / 2 - Math.cos(T / 200) * x + Math.sin(T / 200) * y);
               yn = yn / b % 256;
               if (yn < 0) yn += 256;
               let c = (parseInt(xn) + parseInt(yn) * 256) * 4;
-              pixel(x, y * 2, penImg.data[c], penImg.data[c + 1], penImg.data[c + 2]);
+              pixel(x, y, penImg.data[c], penImg.data[c + 1], penImg.data[c + 2], y % 2 == 0 ? 255 : 0);
             }
           ctx.putImageData(img, 0, 0);
         }, DELAY);
